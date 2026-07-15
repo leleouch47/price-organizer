@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>价表管家 · 价格表整理工具</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">价</div><div><strong>价表管家</strong><span>Price Table Studio</span></div></div>
+      <nav class="nav"><button class="nav-item active" data-view="overview"><span>◈</span> 总览</button><button class="nav-item" data-view="products"><span>▦</span> 商品库</button><button class="nav-item" data-view="categories"><span>◌</span> 分类管理</button></nav>
+      <div class="sidebar-tip"><span class="tip-icon">↗</span><div><strong>持续合并</strong><p>每次导入都会自动追加到现有商品库，并按唯一货号更新重复商品。</p></div></div>
+      <div class="sidebar-bottom"><div class="storage-dot"></div><span>数据只保存在本机浏览器</span></div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar"><div><p class="eyebrow">PRICE TABLE STUDIO / 2026</p><h1 id="page-title">价格表总览</h1></div><div class="top-actions"><button class="btn btn-ghost" id="clear-data">清空数据</button><button class="btn btn-primary" id="export-btn"><span>↓</span> 导出 Excel</button></div></header>
+
+      <section id="overview-view" class="view active-view">
+        <div class="hero-row"><div><h2>把零散价格表，变成清晰商品库。</h2><p>导入、分类、合并，后续新增价格表会自动接续到现有数据。</p></div><button class="upload-cta" id="upload-trigger"><span class="upload-icon">↑</span><span><b>导入价格表</b><small>支持 .xlsx / .xls / .csv / .tsv</small></span></button><input id="file-input" type="file" accept=".xlsx,.xls,.csv,.tsv" multiple hidden /></div>
+        <div class="stats-grid"><div class="stat-card"><span>商品总数</span><strong id="stat-total">0</strong><small>已合并去重</small></div><div class="stat-card"><span>分类数量</span><strong id="stat-categories">0</strong><small>含未分类</small></div><div class="stat-card"><span>供应商</span><strong id="stat-suppliers">0</strong><small>不同来源</small></div><div class="stat-card accent"><span>最近导入</span><strong id="stat-last">—</strong><small id="stat-last-sub">等待第一张价格表</small></div></div>
+        <div class="section-heading"><div><h3>商品分布</h3><p>按分类查看当前价格表整合情况</p></div><button class="text-btn" data-view-target="categories">管理分类 →</button></div>
+        <div id="category-cards" class="category-grid"></div>
+        <div class="section-heading recent-heading"><div><h3>最近导入记录</h3><p>每次导入的文件和合并结果都会留痕</p></div></div>
+        <div class="table-card"><table><thead><tr><th>文件名</th><th>导入时间</th><th>新增</th><th>更新</th><th>跳过</th></tr></thead><tbody id="import-history"></tbody></table><div id="history-empty" class="empty-state compact">还没有导入记录，先上传一张价格表吧。</div></div>
+      </section>
+
+      <section id="products-view" class="view"><div class="section-heading page-section-heading"><div><h2>商品库</h2><p>所有价格表会整合在这里，你可以搜索、改分类或编辑价格。</p></div><button class="btn btn-primary" id="products-upload">+ 导入价格表</button></div><div class="toolbar"><div class="search-box"><span>⌕</span><input id="search-input" placeholder="搜索商品名称、货号、供应商…" /></div><select id="category-filter"><option value="all">全部分类</option></select><select id="sort-select"><option value="name">按商品名称</option><option value="price-desc">价格从高到低</option><option value="price-asc">价格从低到高</option><option value="updated">最近更新</option></select></div><div class="table-card product-table-card"><table><thead><tr><th>商品</th><th>分类</th><th>规格 / 单位</th><th>供应商</th><th>价格</th><th>更新时间</th><th></th></tr></thead><tbody id="product-rows"></tbody></table><div id="products-empty" class="empty-state">暂无商品。导入价格表后，商品会自动出现在这里。</div></div></section>
+
+      <section id="categories-view" class="view"><div class="section-heading page-section-heading"><div><h2>分类管理</h2><p>分类会作为导出 Excel 的工作表名称，也会用于商品库筛选。</p></div><button class="btn btn-primary" id="add-category">+ 新建分类</button></div><div id="category-manage-list" class="manage-list"></div></section>
+    </main>
+  </div>
+  <div id="toast" class="toast"></div>
+  <div id="modal" class="modal hidden"><div class="modal-backdrop"></div><div class="modal-card"><div class="modal-header"><h3 id="modal-title">编辑商品</h3><button id="modal-close" class="icon-btn">×</button></div><form id="product-form"><div class="form-grid"><label>商品名称<input name="name" required /></label><label>货号 / SKU<input name="sku" /></label><label>分类<select name="category" id="modal-category"></select></label><label>规格<input name="spec" /></label><label>单位<input name="unit" /></label><label>价格<input name="price" type="number" step="0.01" min="0" /></label><label>供应商<input name="supplier" /></label><label>生效日期<input name="effectiveDate" type="date" /></label></div><div class="modal-actions"><button type="button" class="btn btn-ghost" id="modal-cancel">取消</button><button type="submit" class="btn btn-primary">保存商品</button></div></form></div></div>
+  <script src="app.js"></script>
+</body>
+</html>
