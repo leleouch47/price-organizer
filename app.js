@@ -1,6 +1,6 @@
 const STORAGE_KEY='price-organizer-v1';
-const AI_POLICY_VERSION='broad-category-v3';
-const DEFAULT_CATEGORIES=['食品饮料','日用百货','办公用品','电子产品','服装鞋帽','其他'];
+const AI_POLICY_VERSION='broad-category-v4';
+const DEFAULT_CATEGORIES=[];
 let state=loadState(); let editingId=null;
 function loadState(){try{const raw=localStorage.getItem(STORAGE_KEY);if(raw)return JSON.parse(raw)}catch(e){}return{products:[],categories:DEFAULT_CATEGORIES,history:[]}}
 function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
