@@ -1,6 +1,7 @@
 const MAX_ITEMS = 40;
 const MAX_NAME_LENGTH = 120;
 const MAX_CATEGORY_LENGTH = 30;
+const CATEGORY_OPTIONS = ['五金工具', '电气照明', '给排水管件', '涂料胶粘', '建筑装饰', '劳保用品', '家具办公', '清洁用品', '绿化园艺', '其他'];
 
 function json(res, status, body) {
   res.status(status).setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -28,9 +29,9 @@ module.exports = async function handler(req, res) {
 
     const prompt = [
       '请规范化下面的商品资料，并判断每个商品最合适的商品分类。',
-      '名称规则：去掉数量、价格、促销词、备注和重复空格；保留品牌、核心品名、型号/材质/关键规格；不要凭空补充不存在的信息；名称应适合商品库检索。',
-      '分类规则：分类要具体且稳定，例如“LED灯具”“电气配件”“PVC管材”“五金工具”“清洁用品”；同类商品必须使用完全相同的分类名；不要返回“未分类”“其他”或“待确认”，无法判断时使用“待确认”。',
-      '只根据提供的名称、SKU 和规格判断。必须只返回 JSON，格式为：{"items":[{"id":"原id","name":"规范化商品名称","category":"分类名称","confidence":0.0}]}。',
+      '名称规则：去掉数量、价格、促销词、备注和重复空格；名称以通用商品类型和关键规格为主；品牌或厂家不要作为分类，也不要为了品牌单独创建商品类别；能识别品牌时放入 brand 字段。不要凭空补充不存在的信息。',
+      `分类规则：只能从以下固定的大类中选择一个：${CATEGORY_OPTIONS.join('、')}。分类只依据商品的用途和类型，不依据品牌、厂家、型号、颜色或尺寸；同类商品必须使用完全相同的分类名；无法确定时使用“其他”。`,
+      '只根据提供的名称、SKU、规格和已有分类判断。必须只返回 JSON，格式为：{"items":[{"id":"原id","name":"规范化商品名称","brand":"品牌或厂家，没有则为空","category":"固定大类","confidence":0.0}]}。',
       JSON.stringify(products, null, 2),
     ].join('\n');
 
@@ -58,7 +59,8 @@ module.exports = async function handler(req, res) {
     const items = Array.isArray(parsed.items) ? parsed.items.filter(item => allowed.has(String(item.id))).map(item => ({
       id: String(item.id),
       name: String(item.name || '').trim().slice(0, MAX_NAME_LENGTH),
-      category: String(item.category || '').trim().slice(0, MAX_CATEGORY_LENGTH),
+      brand: String(item.brand || '').trim().slice(0, MAX_NAME_LENGTH),
+      category: CATEGORY_OPTIONS.includes(String(item.category || '').trim()) ? String(item.category).trim().slice(0, MAX_CATEGORY_LENGTH) : '其他',
       confidence: Math.max(0, Math.min(1, Number(item.confidence) || 0)),
     })).filter(item => item.name && item.category) : [];
     return json(res, 200, { items });
