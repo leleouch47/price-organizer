@@ -22,6 +22,8 @@ function cleanCategory(value, product) {
   if (!category || /^(未分类|待确认|无|未知|null)$/i.test(category)) return '其他';
   if (supplier && category.toLowerCase() === supplier.toLowerCase()) return '其他';
   if (/品牌|厂家|厂商|型号|规格|颜色|尺码|尺寸|系列|款式/.test(category)) return '其他';
+  const broadSuffix = /(用品|工具|管材|管件|配件|设备|灯具|照明|制服|服装|建材|材料|家具|办公|涂料|胶粘|清洁|绿化|园艺|阀门|水暖|面板|风扇|净水器|门锁|玻璃)$/;
+  if (product?.name && category.length >= 2 && String(product.name).includes(category) && !broadSuffix.test(category) && !/^[A-Z0-9]+$/.test(category)) return '其他';
   return category;
 }
 
@@ -76,4 +78,3 @@ module.exports = async function handler(req, res) {
     return json(res, 500, { error: error.message || '分类服务异常' });
   }
 }
-
