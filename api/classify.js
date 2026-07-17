@@ -1,4 +1,6 @@
 const MAX_ITEMS = 40;
+const MAX_NAME_LENGTH = 120;
+const MAX_CATEGORY_LENGTH = 30;
 
 function json(res, status, body) {
   res.status(status).setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -25,9 +27,10 @@ module.exports = async function handler(req, res) {
     if (!products.length) return json(res, 200, { items: [] });
 
     const prompt = [
-      '请为下面的商品名称判断最合适的商品类型。',
-      '规则：分类名称要简短、具体、适合做 Excel 工作表名称；可以创建新的分类；不要返回“未分类”；只根据商品名称和规格判断。',
-      '必须只返回 JSON，格式为：{"items":[{"id":"原id","category":"分类名称"}]}。',
+      '请规范化下面的商品资料，并判断每个商品最合适的商品分类。',
+      '名称规则：去掉数量、价格、促销词、备注和重复空格；保留品牌、核心品名、型号/材质/关键规格；不要凭空补充不存在的信息；名称应适合商品库检索。',
+      '分类规则：分类要具体且稳定，例如“LED灯具”“电气配件”“PVC管材”“五金工具”“清洁用品”；同类商品必须使用完全相同的分类名；不要返回“未分类”“其他”或“待确认”，无法判断时使用“待确认”。',
+      '只根据提供的名称、SKU 和规格判断。必须只返回 JSON，格式为：{"items":[{"id":"原id","name":"规范化商品名称","category":"分类名称","confidence":0.0}]}。',
       JSON.stringify(products, null, 2),
     ].join('\n');
 
@@ -39,7 +42,8 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
-        temperature: 0.1,
+        temperature: 0.05,
+        response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: '你是一个严谨的商品目录分类助手。' },
           { role: 'user', content: prompt },
@@ -53,8 +57,10 @@ module.exports = async function handler(req, res) {
     const allowed = new Set(products.map(p => String(p.id)));
     const items = Array.isArray(parsed.items) ? parsed.items.filter(item => allowed.has(String(item.id))).map(item => ({
       id: String(item.id),
-      category: String(item.category || '').trim().slice(0, 30),
-    })) : [];
+      name: String(item.name || '').trim().slice(0, MAX_NAME_LENGTH),
+      category: String(item.category || '').trim().slice(0, MAX_CATEGORY_LENGTH),
+      confidence: Math.max(0, Math.min(1, Number(item.confidence) || 0)),
+    })).filter(item => item.name && item.category) : [];
     return json(res, 200, { items });
   } catch (error) {
     return json(res, 500, { error: error.message || '分类服务异常' });
